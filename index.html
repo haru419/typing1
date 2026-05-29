@@ -140,6 +140,12 @@ spellcheck="false"
 <div class="stats">
 
 <div class="stat">
+COMBO:
+<span id="combo">0</span>
+</div>
+  
+  
+<div class="stat">
 時間:
 <span id="time">60</span>
 </div>
@@ -297,6 +303,8 @@ let score=0;
 let miss=0;
 let time=60;
 let timer;
+let combo=0;
+let maxCombo=0;
 
 function randomWord(){
 
@@ -356,7 +364,13 @@ input.addEventListener("input",()=>{
 
 if(input.value===currentWord){
 
-score++;
+combo++;
+
+if(combo > maxCombo){
+    maxCombo = combo;
+}
+
+score += combo;
 
 scoreEl.textContent=score;
 
@@ -378,6 +392,13 @@ input.value.length
 ){
 
 miss++;
+combo = 0;
+comboEl.textContent = combo;
+
+comboEl.textContent = combo;
+
+const comboEl=
+document.getElementById("combo");
 
 missEl.textContent=miss;
 
