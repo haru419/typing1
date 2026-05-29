@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>タイピングゲーム</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:sans-serif;
+}
+
+body{
+background:#0f172a;
+color:white;
+min-height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+padding:20px;
+}
+
+.container{
+width:100%;
+max-width:900px;
+}
+
+.card{
+background:#1e293b;
+padding:30px;
+border-radius:20px;
+box-shadow:0 0 20px rgba(0,0,0,.3);
+}
+
+h1{
+text-align:center;
+margin-bottom:20px;
+}
+
+.word{
+font-size:40px;
+font-weight:bold;
+text-align:center;
+margin:30px 0;
+color:#38bdf8;
+}
+
+input{
+width:100%;
+padding:15px;
+font-size:22px;
+border:none;
+border-radius:12px;
+outline:none;
+}
+
+.stats{
+display:flex;
+justify-content:space-between;
+margin-top:20px;
+flex-wrap:wrap;
+gap:10px;
+}
+
+.stat{
+background:#334155;
+padding:10px 15px;
+border-radius:10px;
+}
+
+button{
+padding:12px 20px;
+border:none;
+border-radius:10px;
+background:#38bdf8;
+color:white;
+font-size:18px;
+cursor:pointer;
+margin-top:20px;
+}
+
+button:hover{
+opacity:.8;
+}
+
+.ranking{
+margin-top:30px;
+}
+
+.ranking h2{
+margin-bottom:10px;
+}
+
+.rank-item{
+background:#334155;
+padding:10px;
+border-radius:10px;
+margin-bottom:8px;
+display:flex;
+justify-content:space-between;
+}
+
+.result{
+display:none;
+text-align:center;
+margin-top:20px;
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="card">
+
+<h1>⌨️ タイピングゲーム</h1>
+
+<div id="startArea">
+<button onclick="startGame()">ゲーム開始</button>
+</div>
+
+<div id="gameArea" style="display:none">
+
+<div class="word" id="word"></div>
+
+<input
+id="input"
+autocomplete="off"
+spellcheck="false"
+>
+
+<div class="stats">
+
+<div class="stat">
+時間:
+<span id="time">60</span>
+</div>
+
+<div class="stat">
+スコア:
+<span id="score">0</span>
+</div>
+
+<div class="stat">
+ミス:
+<span id="miss">0</span>
+</div>
+
+</div>
+
+</div>
+
+<div class="result" id="result">
+
+<h2>ゲーム終了！</h2>
+
+<p>
+スコア:
+<span id="finalScore"></span>
+</p>
+
+<br>
+
+<input
+id="playerName"
+placeholder="名前を入力"
+>
+
+<br>
+
+<button onclick="saveScore()">
+ランキング登録
+</button>
+
+</div>
+
+<div class="ranking">
+
+<h2>🏆ランキング</h2>
+
+<div id="rankingList"></div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const SUPABASE_URL="https://dwisqhvtopryncyxrdxu.supabase.co";
+const SUPABASE_KEY="sb_publishable_5f5R90kWymJJJlU7D18DLw_n16zST-T";
+
+const supabase=
+window.supabase.createClient(
+SUPABASE_URL,
+SUPABASE_KEY
+);
+
+const words=[
+"apple",
+"banana",
+"orange",
+"computer",
+"keyboard",
+"mouse",
+"internet",
+"github",
+"javascript",
+"typing",
+"school",
+"summer",
+"winter",
+"spring",
+"autumn",
+"camera",
+"window",
+"monitor",
+"coding",
+"supabase"
+];
+
+let currentWord="";
+let score=0;
+let miss=0;
+let time=60;
+let timer;
+
+function randomWord(){
+
+currentWord=
+words[Math.floor(Math.random()*words.length)];
+
+word.textContent=currentWord;
+
+}
+
+function startGame(){
+
+score=0;
+miss=0;
+time=60;
+
+scoreEl.textContent=0;
+missEl.textContent=0;
+timeEl.textContent=60;
+
+startArea.style.display="none";
+gameArea.style.display="block";
+
+randomWord();
+
+input.value="";
+input.focus();
+
+timer=setInterval(()=>{
+
+time--;
+timeEl.textContent=time;
+
+if(time<=0){
+
+clearInterval(timer);
+
+endGame();
+
+}
+
+},1000);
+
+}
+
+function endGame(){
+
+gameArea.style.display="none";
+
+result.style.display="block";
+
+finalScore.textContent=score;
+
+}
+
+input.addEventListener("input",()=>{
+
+if(input.value===currentWord){
+
+score++;
+
+scoreEl.textContent=score;
+
+input.value="";
+
+randomWord();
+
+}
+
+});
+
+input.addEventListener("keydown",(e)=>{
+
+if(
+e.key.length===1 &&
+currentWord[
+input.value.length
+]!==e.key
+){
+
+miss++;
+
+missEl.textContent=miss;
+
+}
+
+});
+
+async function saveScore(){
+
+const name=
+playerName.value.trim();
+
+if(!name) return;
+
+await supabase
+.from("ranking")
+.insert({
+name,
+score
+});
+
+loadRanking();
+
+alert("登録完了");
+
+}
+
+async function loadRanking(){
+
+const {data}=await supabase
+.from("ranking")
+.select("*")
+.order("score",{ascending:false})
+.limit(10);
+
+rankingList.innerHTML="";
+
+data.forEach((r,i)=>{
+
+rankingList.innerHTML+=`
+<div class="rank-item">
+<span>${i+1}. ${r.name}</span>
+<span>${r.score}</span>
+</div>
+`;
+
+});
+
+}
+
+const word=document.getElementById("word");
+const input=document.getElementById("input");
+
+const scoreEl=document.getElementById("score");
+const missEl=document.getElementById("miss");
+const timeEl=document.getElementById("time");
+
+const startArea=document.getElementById("startArea");
+const gameArea=document.getElementById("gameArea");
+const result=document.getElementById("result");
+
+loadRanking();
+
+</script>
+
+</body>
+</html>
