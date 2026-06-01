@@ -174,7 +174,7 @@ justify-content:space-between;
 </div>
 
 <script>
-// --- Supabaseの初期化 (コードの最初で行う) ---
+// --- Supabaseの初期化 (ここで1回だけ定義) ---
 const SUPABASE_URL = "https://dwisqhvtopryncyxrdxu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_5f5R90kWymJJJlU7D18DLw_n16zST-T";
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -233,6 +233,8 @@ osc.start();
 osc.stop(ctx.currentTime+0.05);
 }
 
+// サウンドの初期化エラー（ユーザーの操作前にオーディオを再生しようとする制限）を回避するため、
+// ゲーム開始やキー入力時に初めて再生されるようになっています。
 function playMiss(){
 const ctx=new(window.AudioContext||window.webkitAudioContext)();
 const osc=ctx.createOscillator();
@@ -381,7 +383,7 @@ ${i+1}. ${r.name}
 });
 }
 
-// --- イベント listener の登録 (常に有効にする) ---
+// --- イベントリスナーの登録 ---
 input.addEventListener("input",()=>{
 if(input.value===currentWord){
 playCorrect();
