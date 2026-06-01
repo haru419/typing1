@@ -205,6 +205,10 @@ MAX: <span id="maxCombo">0</span>
 正確率: <span id="finalAccuracy"></span>%
 </div>
 
+<div class="final">
+順位: <span id="myRank">-</span>位
+</div>  
+
 <br>
 
 <button onclick="location.reload()">
@@ -296,7 +300,24 @@ osc.start();
 osc.stop(ctx.currentTime+0.08);
 
 }
+async function showMyRank(score){
 
+const {data} =
+await supabase
+.from("ranking")
+.select("score");
+
+const higher =
+data.filter(
+x => x.score > score
+).length;
+
+document.getElementById("myRank")
+.textContent =
+higher + 1;
+
+}
+  
 function playFinish(){
 
 const ctx=new(window.AudioContext||window.webkitAudioContext)();
@@ -396,7 +417,10 @@ data.forEach((r,i)=>{
 
 rankingList.innerHTML += `
 <div class="rank-item">
-<span>${i+1}. ${r.name}</span>
+<span>
+${r.icon || "😀"}
+${i+1}. ${r.name}
+</span>
 <span>${r.score}</span>
 </div>
 `;
@@ -419,6 +443,17 @@ document.getElementById("finalCombo").textContent=maxCombo;
 document.getElementById("finalAccuracy").textContent=
 accuracyEl.textContent;
 saveScore();
+
+if(score > 5000){
+alert("不正スコアです");
+return;
+}
+
+if(maxCombo > 300){
+return;
+}
+  
+await showMyRank(score);
 }
 
 async function saveScore(){
@@ -452,7 +487,7 @@ await supabase
 .from("ranking")
 .select("*")
 .order("score",{ascending:false})
-.limit(10);
+.limit(100);
 
 if(error){
 
