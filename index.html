@@ -108,6 +108,24 @@ margin-bottom:15px;
 font-size:24px;
 margin:10px 0;
 }
+
+.ranking{
+margin-top:30px;
+}
+
+.ranking h2{
+margin-bottom:10px;
+}
+
+.rank-item{
+background:#334155;
+padding:10px;
+border-radius:10px;
+margin-bottom:8px;
+display:flex;
+justify-content:space-between;
+}
+
 </style>
 </head>
 <body>
@@ -366,6 +384,57 @@ endGame();
 
 function endGame(){
 
+async function saveScore(){
+
+const name =
+prompt("名前を入力してください");
+
+if(!name) return;
+
+await supabase
+.from("ranking")
+.insert({
+name:name,
+score:score
+});
+
+loadRanking();
+
+}
+
+async function loadRanking(){
+
+const {data,error} =
+await supabase
+.from("ranking")
+.select("*")
+.order("score",{ascending:false})
+.limit(10);
+
+if(error){
+
+console.error(error);
+
+return;
+
+}
+
+rankingList.innerHTML="";
+
+data.forEach((r,i)=>{
+
+rankingList.innerHTML += `
+<div class="rank-item">
+<span>${i+1}. ${r.name}</span>
+<span>${r.score}</span>
+</div>
+`;
+
+});
+
+}
+
+  
 playFinish();
 
 document.getElementById("gameArea").style.display="none";
@@ -378,7 +447,7 @@ document.getElementById("finalCombo").textContent=maxCombo;
 
 document.getElementById("finalAccuracy").textContent=
 accuracyEl.textContent;
-
+saveScore();
 }
 
 input.addEventListener("input",()=>{
@@ -451,6 +520,18 @@ accuracyEl.textContent=accuracy;
 
 });
 
+const SUPABASE_URL =
+"https://dwisqhvtopryncyxrdxu.supabase.co";
+
+const SUPABASE_KEY =
+"sb_publishable_5f5R90kWymJJJlU7D18DLw_n16zST-T";
+
+const supabase =
+window.supabase.createClient(
+SUPABASE_URL,
+SUPABASE_KEY
+);
+loadRanking();
 </script>
 
 </body>
