@@ -260,6 +260,12 @@ const accuracyEl=document.getElementById("accuracy");
 const timeEl=document.getElementById("time");
 
 const comboEffect=document.getElementById("comboEffect");
+const rankingList =document.getElementById("rankingList");
+
+const icons = [
+"😀","😎","🔥","⚡","👑",
+"🐱","🐶","🦊","🐧","🐼"
+];
 
 function playCorrect(){
 
@@ -422,11 +428,17 @@ prompt("名前を入力してください");
 
 if(!name) return;
 
+const icon =
+icons[Math.floor(Math.random()*icons.length)];
+
 await supabase
 .from("ranking")
 .insert({
 name:name,
-score:score
+score:score,
+icon:icon,
+combo:maxCombo,
+accuracy:parseInt(accuracyEl.textContent)
 });
 
 loadRanking();
