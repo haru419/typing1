@@ -125,7 +125,6 @@ margin-bottom:8px;
 display:flex;
 justify-content:space-between;
 }
-
 </style>
 </head>
 <body>
@@ -135,95 +134,52 @@ justify-content:space-between;
 
 <h1>⌨️ タイピングゲームDX</h1>
 
-<div id="startArea">
+<div id="startArea" style="text-align: center;">
 <button onclick="startGame()">ゲーム開始</button>
 </div>
 
 <div id="gameArea" style="display:none">
-
 <div class="word" id="word"></div>
-
 <div id="comboEffect"></div>
-
-<input
-id="input"
-autocomplete="off"
-spellcheck="false"
->
+<input id="input" autocomplete="off" spellcheck="false">
 
 <div class="stats">
-
-<div class="stat">
-時間: <span id="time">60</span>
+<div class="stat">時間: <span id="time">60</span></div>
+<div class="stat">スコア: <span id="score">0</span></div>
+<div class="stat">ミス: <span id="miss">0</span></div>
+<div class="stat">COMBO: <span id="combo">0</span></div>
+<div class="stat">MAX: <span id="maxCombo">0</span></div>
+<div class="stat">正確率: <span id="accuracy">100</span>%</div>
 </div>
-
-<div class="stat">
-スコア: <span id="score">0</span>
-</div>
-
-<div class="stat">
-ミス: <span id="miss">0</span>
-</div>
-
-<div class="stat">
-COMBO: <span id="combo">0</span>
-</div>
-
-<div class="stat">
-MAX: <span id="maxCombo">0</span>
-</div>
-
-<div class="stat">
-正確率: <span id="accuracy">100</span>%
-</div>
-
-</div>
-
 </div>
 
 <div class="result" id="result">
-
 <h2>🎉ゲーム終了！</h2>
 
+<div class="final">スコア: <span id="finalScore"></span></div>
+<div class="final">最大コンボ: <span id="finalCombo"></span></div>
+<div class="final">正確率: <span id="finalAccuracy"></span>%</div>
+<div class="final">順位: <span id="myRank">-</span>位</div>  
+
 <div class="ranking">
-
 <h2>🏆ランキング</h2>
-
 <div id="rankingList"></div>
-
 </div>
-
-<div class="final">
-スコア: <span id="finalScore"></span>
-</div>
-
-<div class="final">
-最大コンボ: <span id="finalCombo"></span>
-</div>
-
-<div class="final">
-正確率: <span id="finalAccuracy"></span>%
-</div>
-
-<div class="final">
-順位: <span id="myRank">-</span>位
-</div>  
 
 <br>
-
-<button onclick="location.reload()">
-もう一度遊ぶ
-</button>
-
+<button onclick="location.reload()">もう一度遊ぶ</button>
 </div>
 
 </div>
 </div>
 
 <script>
+// --- Supabaseの初期化 (コードの最初で行う) ---
+const SUPABASE_URL = "https://dwisqhvtopryncyxrdxu.supabase.co";
+const SUPABASE_KEY = "sb_publishable_5f5R90kWymJJJlU7D18DLw_n16zST-T";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const words=[
-
 "apple","banana","orange","grape","melon","peach","lemon",
 "computer","keyboard","mouse","monitor","internet",
 "github","javascript","html","css","coding","supabase",
@@ -241,7 +197,6 @@ const words=[
 "engineering","technology","creative","amazing",
 "fantastic","powerful","beautiful","lightning",
 "thunder","volcano","mountain","river","ocean"
-
 ];
 
 let currentWord="";
@@ -266,109 +221,55 @@ const timeEl=document.getElementById("time");
 const comboEffect=document.getElementById("comboEffect");
 const rankingList =document.getElementById("rankingList");
 
-const icons = [
-"😀","😎","🔥","⚡","👑",
-"🐱","🐶","🦊","🐧","🐼"
-];
+const icons = ["😀","😎","🔥","⚡","👑","🐱","🐶","🦊","🐧","🐼"];
 
+// --- サウンド関数 ---
 function playCorrect(){
-
 const ctx=new(window.AudioContext||window.webkitAudioContext)();
-
 const osc=ctx.createOscillator();
-
 osc.frequency.value=700;
 osc.connect(ctx.destination);
-
 osc.start();
-
 osc.stop(ctx.currentTime+0.05);
-
 }
 
 function playMiss(){
-
 const ctx=new(window.AudioContext||window.webkitAudioContext)();
-
 const osc=ctx.createOscillator();
-
 osc.frequency.value=150;
 osc.connect(ctx.destination);
-
 osc.start();
-
 osc.stop(ctx.currentTime+0.08);
-
 }
-async function showMyRank(score){
 
-const {data} =
-await supabase
-.from("ranking")
-.select("score");
-
-const higher =
-data.filter(
-x => x.score > score
-).length;
-
-document.getElementById("myRank")
-.textContent =
-higher + 1;
-
-}
-  
 function playFinish(){
-
 const ctx=new(window.AudioContext||window.webkitAudioContext)();
-
 const osc=ctx.createOscillator();
-
 osc.frequency.value=500;
 osc.connect(ctx.destination);
-
 osc.start();
-
 osc.stop(ctx.currentTime+0.3);
-
 }
 
+// --- ゲームロジック ---
 function randomWord(){
-
-currentWord=
-words[Math.floor(Math.random()*words.length)];
-
+currentWord = words[Math.floor(Math.random()*words.length)];
 word.textContent=currentWord;
-
 }
 
 function showCombo(){
-
 if(combo<3){
-
 comboEffect.textContent="";
-
 return;
-
 }
-
-comboEffect.textContent=
-"🔥 "+combo+" COMBO!";
-
-comboEffect.style.transform=
-"scale(1.3)";
-
+comboEffect.textContent = "🔥 " + combo + " COMBO!";
+comboEffect.style.transform = "scale(1.3)";
 setTimeout(()=>{
-
-comboEffect.style.transform=
-"scale(1)";
-
+comboEffect.style.transform = "scale(1)";
 },100);
-
 }
 
 function startGame(){
-
 score=0;
 miss=0;
 combo=0;
@@ -387,86 +288,58 @@ document.getElementById("startArea").style.display="none";
 document.getElementById("gameArea").style.display="block";
 
 randomWord();
-
 input.value="";
 input.focus();
 
 timer=setInterval(()=>{
-
 time--;
-
 timeEl.textContent=time;
-
 if(time<=0){
-
 clearInterval(timer);
-
 endGame();
-
 }
-
 },1000);
-
 }
 
-function endGame(){
-
-rankingList.innerHTML="";
-
-data.forEach((r,i)=>{
-
-rankingList.innerHTML += `
-<div class="rank-item">
-<span>
-${r.icon || "😀"}
-${i+1}. ${r.name}
-</span>
-<span>${r.score}</span>
-</div>
-`;
-
-});
-
-}
-
-  
+async function endGame(){
 playFinish();
 
 document.getElementById("gameArea").style.display="none";
-
 document.getElementById("result").style.display="block";
 
 document.getElementById("finalScore").textContent=score;
-
 document.getElementById("finalCombo").textContent=maxCombo;
+document.getElementById("finalAccuracy").textContent=accuracyEl.textContent;
 
-document.getElementById("finalAccuracy").textContent=
-accuracyEl.textContent;
-saveScore();
-
+// 不正チェック
 if(score > 5000){
 alert("不正スコアです");
 return;
 }
-
 if(maxCombo > 300){
 return;
 }
-  
+
+// スコア保存と順位取得
+await saveScore();
 await showMyRank(score);
 }
 
+async function showMyRank(score){
+const {data, error} = await supabase.from("ranking").select("score");
+if(error) { console.error(error); return; }
+
+const higher = data.filter(x => x.score > score).length;
+document.getElementById("myRank").textContent = higher + 1;
+}
+
 async function saveScore(){
-
-const name =
-prompt("名前を入力してください");
-
+const name = prompt("名前を入力してください");
 if(!name) return;
 
-const icon =
-icons[Math.floor(Math.random()*icons.length)];
+const icon = icons[Math.floor(Math.random()*icons.length)];
 
-await supabase
+const { error } = await supabase
 .from("ranking")
 .insert({
 name:name,
@@ -476,109 +349,70 @@ combo:maxCombo,
 accuracy:parseInt(accuracyEl.textContent)
 });
 
-loadRanking();
+if(error) console.error(error);
 
+await loadRanking();
 }
 
 async function loadRanking(){
-
-const {data,error} =
-await supabase
+const {data, error} = await supabase
 .from("ranking")
 .select("*")
 .order("score",{ascending:false})
 .limit(100);
 
 if(error){
-
 console.error(error);
-
 return;
-
 }
 
+// ランキング表示の更新
+rankingList.innerHTML="";
+data.forEach((r,i)=>{
+rankingList.innerHTML += `
+<div class="rank-item">
+<span>
+${r.icon || "😀"}
+${i+1}. ${r.name}
+</span>
+<span>${r.score} pts</span>
+</div>
+`;
+});
+}
+
+// --- イベント listener の登録 (常に有効にする) ---
 input.addEventListener("input",()=>{
-
 if(input.value===currentWord){
-
 playCorrect();
-
 combo++;
-
 if(combo>maxCombo){
-
 maxCombo=combo;
-
 }
-
 score+=combo;
-
 scoreEl.textContent=score;
-
 comboEl.textContent=combo;
-
 maxComboEl.textContent=maxCombo;
-
 showCombo();
-
 input.value="";
-
 randomWord();
-
 }
-
 });
 
 input.addEventListener("keydown",(e)=>{
-
 if(e.key.length===1){
-
 totalType++;
-
 }
-
-if(
-
-e.key.length===1 &&
-currentWord[input.value.length]!==e.key
-
-){
-
+if(e.key.length===1 && currentWord[input.value.length]!==e.key){
 playMiss();
-
 miss++;
-
 combo=0;
-
 missEl.textContent=miss;
-
 comboEl.textContent=0;
-
-const accuracy=Math.max(
-0,
-Math.round(
-(totalType/(totalType+miss))*100
-)
-);
-
+const accuracy=Math.max(0,Math.round((totalType/(totalType+miss))*100));
 accuracyEl.textContent=accuracy;
-
 }
-
 });
-
-const SUPABASE_URL =
-"https://dwisqhvtopryncyxrdxu.supabase.co";
-
-const SUPABASE_KEY =
-"sb_publishable_5f5R90kWymJJJlU7D18DLw_n16zST-T";
-
-const supabase =
-window.supabase.createClient(
-SUPABASE_URL,
-SUPABASE_KEY
-);
-loadRanking();
 </script>
 
 </body>
