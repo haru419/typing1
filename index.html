@@ -350,4 +350,114 @@ try {
         await saveScore();
         await showMyRank(score);
     } else {
-        rankingList.innerHTML
+        rankingList.innerHTML = "<p style='color:#cca233; text-align:center;'>ローカルモード: ランキングは利用できません</p>";
+    }
+} catch(e) {
+    console.error("ランキング処理に失敗しました:", e);
+    rankingList.innerHTML = "<p style='color:#ef4444; text-align:center;'>ランキングを取得できませんでした</p>";
+}
+}
+
+// ==========================================
+// 5. Supabase データベース連携
+// ==========================================
+async function showMyRank(score){
+if(!supabase) return;
+const {data, error} = await supabase.from("ranking").select("score");
+if(error) { console.error(error); return; }
+
+const higher = data.filter(x => x.score > score).length;
+document.getElementById("myRank").textContent = higher + 1;
+}
+
+async function saveScore(){
+if(!supabase) return;
+const name = prompt("名前を入力してください");
+if(!name) return;
+
+const icon = icons[Math.floor(Math.random()*icons.length)];
+
+const { error } = await supabase
+.from("ranking")
+.insert({
+name:name,
+score:score,
+icon:icon,
+combo:maxCombo,
+accuracy:parseInt(accuracyEl.textContent)
+});
+
+if(error) {
+    console.error("スコア保存失敗:", error);
+}
+
+await loadRanking();
+}
+
+async function loadRanking(){
+if(!supabase) return;
+const {data, error} = await supabase
+.from("ranking")
+.select("*")
+.order("score",{ascending:false})
+.limit(100);
+
+if(error){
+console.error(error);
+return;
+}
+
+rankingList.innerHTML="";
+data.forEach((r,i)=>{
+rankingList.innerHTML += `
+<div class="rank-item">
+<span>
+${r.icon || "😀"}
+${i+1}. ${r.name}
+</span>
+<span>${r.score} pts</span>
+</div>
+`;
+});
+}
+
+// ==========================================
+// 6. イベントリスナー（キー入力・ボタンクリック）
+// ==========================================
+document.getElementById("startBtn").addEventListener("click", startGame);
+
+input.addEventListener("input",()=>{
+if(input.value===currentWord){
+playCorrect();
+combo++;
+if(combo>maxCombo){
+maxCombo=combo;
+}
+score+=combo;
+scoreEl.textContent=score;
+comboEl.textContent=combo;
+maxComboEl.textContent=maxCombo;
+showCombo();
+input.value="";
+randomWord();
+}
+});
+
+input.addEventListener("keydown",(e)=>{
+if(e.key.length===1){
+totalType++;
+}
+if(e.key.length===1 && currentWord[input.value.length]!==e.key){
+playMiss();
+miss++;
+combo=0;
+missEl.textContent=miss;
+comboEl.textContent=0;
+const accuracy=Math.max(0,Math.round((totalType/(totalType+miss))*100));
+accuracyEl.textContent=accuracy;
+}
+});
+</script>
+
+</body>
+</html>
