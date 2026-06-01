@@ -65,6 +65,7 @@ font-size:24px;
 border:none;
 border-radius:12px;
 outline:none;
+color:#0f172a;
 }
 
 .stats{
@@ -174,7 +175,24 @@ justify-content:space-between;
 </div>
 
 <script>
-// --- グローバル変数の宣言 ---
+// ==========================================
+// 1. Supabase の安全な初期化 (ここだけで宣言)
+// ==========================================
+const SUPABASE_URL = "https://dwisqhvtopryncyxrdxu.supabase.co";
+const SUPABASE_KEY = "sb_publishable_5f5R90kWymJJJlU7D18DLw_n16zST-T";
+let supabase = null;
+
+if (window.supabase) {
+    try {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } catch(e) {
+        console.error("Supabaseの初期化に失敗しました。ローカルモードで動作します:", e);
+    }
+}
+
+// ==========================================
+// 2. グローバル変数・データ設定
+// ==========================================
 const words=[
 "apple","banana","orange","grape","melon","peach","lemon",
 "computer","keyboard","mouse","monitor","internet",
@@ -202,24 +220,9 @@ let combo=0;
 let maxCombo=0;
 let totalType=0;
 let time=60;
-let timer;
+let timer = null;
 
-// --- Supabaseの安全な初期化 ---
-const SUPABASE_URL = "https://dwisqhvtopryncyxrdxu.supabase.co";
-const SUPABASE_KEY = "sb_publishable_5f5R90kWymJJJlU7D18DLw_n16zST-T";
-let supabase = null;
-
-if (window.supabase) {
-    try {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    } catch(e) {
-        console.error("Supabaseの初期化に失敗しました。ランキングは無効化されます:", e);
-    }
-} else {
-    console.warn("Supabase SDKが読み込まれていません。ローカルモードで実行します。");
-}
-
-// --- DOM要素の取得 ---
+// DOM要素の取得
 const word=document.getElementById("word");
 const input=document.getElementById("input");
 const scoreEl=document.getElementById("score");
@@ -233,7 +236,9 @@ const rankingList =document.getElementById("rankingList");
 
 const icons = ["😀","😎","🔥","⚡","👑","🐱","🐶","🦊","🐧","🐼"];
 
-// --- サウンド関数 ---
+// ==========================================
+// 3. オーディオ（効果音）処理
+// ==========================================
 function playCorrect(){
 try {
 const ctx=new(window.AudioContext||window.webkitAudioContext)();
@@ -267,7 +272,9 @@ osc.stop(ctx.currentTime+0.3);
 } catch(e){}
 }
 
-// --- ゲームロジック ---
+// ==========================================
+// 4. ゲームのコアロジック
+// ==========================================
 function randomWord(){
 currentWord = words[Math.floor(Math.random()*words.length)];
 word.textContent=currentWord;
@@ -296,7 +303,7 @@ time=60;
 scoreEl.textContent=0;
 missEl.textContent=0;
 comboEl.textContent=0;
-maxComboEl.textContent=maxCombo;
+maxComboEl.textContent=0;
 accuracyEl.textContent=100;
 timeEl.textContent=60;
 
@@ -328,6 +335,7 @@ document.getElementById("finalScore").textContent=score;
 document.getElementById("finalCombo").textContent=maxCombo;
 document.getElementById("finalAccuracy").textContent=accuracyEl.textContent;
 
+// 不正スコアの簡易ガード
 if(score > 5000){
 alert("不正スコアです");
 return;
@@ -336,117 +344,10 @@ if(maxCombo > 300){
 return;
 }
 
-// Supabase接続エラー等でゲーム全体がクラッシュしないよう保護
+// 非同期通信の保護（エラーでもクラッシュしない）
 try {
     if (supabase) {
         await saveScore();
         await showMyRank(score);
     } else {
-        rankingList.innerHTML = "<p style='color:#cca233;'>スタンドアロンモード: ランキングは利用できません</p>";
-    }
-} catch(e) {
-    console.error("ランキング処理中のエラー:", e);
-    rankingList.innerHTML = "<p style='color:#ef4444;'>ランキングの読み込みに失敗しました</p>";
-}
-}
-
-async function showMyRank(score){
-if(!supabase) return;
-const {data, error} = await supabase.from("ranking").select("score");
-if(error) { console.error(error); return; }
-
-const higher = data.filter(x => x.score > score).length;
-document.getElementById("myRank").textContent = higher + 1;
-}
-
-async function saveScore(){
-if(!supabase) return;
-const name = prompt("名前を入力してください");
-if(!name) return;
-
-const icon = icons[Math.floor(Math.random()*icons.length)];
-
-const { error } = await supabase
-.from("ranking")
-.insert({
-name:name,
-score:score,
-icon:icon,
-combo:maxCombo,
-accuracy:parseInt(accuracyEl.textContent)
-});
-
-if(error) {
-    console.error("スコア保存失敗:", error);
-    alert("データベースエラーのためスコアを保存できませんでした。");
-}
-
-await loadRanking();
-}
-
-async function loadRanking(){
-if(!supabase) return;
-const {data, error} = await supabase
-.from("ranking")
-.select("*")
-.order("score",{ascending:false})
-.limit(100);
-
-if(error){
-console.error(error);
-return;
-}
-
-rankingList.innerHTML="";
-data.forEach((r,i)=>{
-rankingList.innerHTML += `
-<div class="rank-item">
-<span>
-${r.icon || "😀"}
-${i+1}. ${r.name}
-</span>
-<span>${r.score} pts</span>
-</div>
-`;
-});
-}
-
-// --- イベントリスナーの登録 ---
-// HTMLのonclick属性ではなく、JS側から直接ボタンにイベントを紐付けることでエラーを防ぎます
-document.getElementById("startBtn").addEventListener("click", startGame);
-
-input.addEventListener("input",()=>{
-if(input.value===currentWord){
-playCorrect();
-combo++;
-if(combo>maxCombo){
-maxCombo=combo;
-}
-score+=combo;
-scoreEl.textContent=score;
-comboEl.textContent=combo;
-maxComboEl.textContent=maxCombo;
-showCombo();
-input.value="";
-randomWord();
-}
-});
-
-input.addEventListener("keydown",(e)=>{
-if(e.key.length===1){
-totalType++;
-}
-if(e.key.length===1 && currentWord[input.value.length]!==e.key){
-playMiss();
-miss++;
-combo=0;
-missEl.textContent=miss;
-comboEl.textContent=0;
-const accuracy=Math.max(0,Math.round((totalType/(totalType+miss))*100));
-accuracyEl.textContent=accuracy;
-}
-});
-</script>
-
-</body>
-</html>
+        rankingList.innerHTML
